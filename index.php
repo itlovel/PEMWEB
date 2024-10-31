@@ -3,6 +3,21 @@ require 'auth.php';
 require 'recipe.php';
 
 $page = isset($_GET['page']) ? $_GET['page'] : 'home';
+
+if (isset($_GET['delete_recipe'])) {
+    $delete_id = sanitize($_GET['delete_recipe']);
+    
+    $delete_images_query = "DELETE FROM recipe_images WHERE recipe_id = $delete_id";
+    mysqli_query($conn, $delete_images_query);
+    
+    $delete_recipe_query = "DELETE FROM recipes WHERE id = $delete_id AND user_id = " . $_SESSION['user_id'];
+    if (mysqli_query($conn, $delete_recipe_query)) {
+        $success = "Recipe deleted successfully.";
+    } else {
+        $error = "Failed to delete recipe: " . mysqli_error($conn);
+    }
+}
+
 ?>
 
 <!DOCTYPE html>
@@ -11,7 +26,6 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'home';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Food Recipe Sharing Platform</title>
-    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { font-family: Arial, sans-serif; padding: 20px; }
@@ -21,7 +35,6 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'home';
     </style>
 </head>
 <body>
-    <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
         <div class="container-fluid">
             <a class="navbar-brand" href="index.php">Recipe Platform</a>
@@ -76,7 +89,6 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'home';
                                 <h5 class="card-title"><?php echo $row['title']; ?></h5>
                                 <p class="card-text">By: <?php echo $row['username']; ?></p>
                                 
-                                <!-- Display multiple images -->
                                 <div class="mb-3">
                                     <?php while ($image = mysqli_fetch_assoc($image_result)): ?>
                                         <img src="<?php echo $image['image']; ?>" alt="Recipe Image" class="img-fluid mb-2">
@@ -90,7 +102,7 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'home';
 
                                 <?php if (isset($_SESSION['user_id']) && $_SESSION['user_id'] == $row['user_id']): ?>
                                     <a href="index.php?page=edit_recipe&id=<?php echo $row['id']; ?>" class="btn btn-primary">Edit</a>
-                                    <a href="index.php?delete_recipe=<?php echo $row['id']; ?>" class="btn btn-danger" onclick="return confirm('Are you sure?')">Delete</a>
+                                    <a href="index.php?delete_recipe=<?php echo $row['id']; ?>" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete this recipe?')">Delete</a>
                                 <?php endif; ?>
                             </div>
                         </div>
@@ -171,16 +183,12 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'home';
                     </div>
                     <div class="mb-3">
                         <label>Existing Images:</label>
-                        <div class="row">
+                        <div>
                             <?php
-                            $image_query = "SELECT * FROM recipe_images WHERE recipe_id = $id";
+                            $image_query = "SELECT * FROM recipe_images WHERE recipe_id = " . $recipe['id'];
                             $image_result = mysqli_query($conn, $image_query);
-                            while ($image = mysqli_fetch_assoc($image_result)):
-                            ?>
-                                <div class="col-md-4">
-                                    <img src="<?php echo $image['image']; ?>" alt="Recipe Image" class="img-fluid mb-2">
-                                    <input type="checkbox" name="delete_images[]" value="<?php echo $image['id']; ?>"> Delete
-                                </div>
+                            while ($image = mysqli_fetch_assoc($image_result)): ?>
+                                <img src="<?php echo $image['image']; ?>" alt="Recipe Image" class="img-fluid mb-2">
                             <?php endwhile; ?>
                         </div>
                     </div>
@@ -188,11 +196,11 @@ $page = isset($_GET['page']) ? $_GET['page'] : 'home';
                         <input type="file" name="images[]" multiple class="form-control">
                     </div>
                     <div class="d-grid">
-                        <input type="submit" name="update_recipe" value="Update Recipe" class="btn btn-primary">
+                        <input type="submit" name="update_recipe" value="Update Recipe" class="btn btn-warning">
                     </div>
                 </form>
             <?php else: ?>
-                <div class="alert alert-danger">Recipe not found or you are not authorized to edit it.</div>
+                <div class="alert alert-danger">Recipe not found or you do not have permission to edit it.</div>
             <?php endif; ?>
         <?php endif; ?>
     </div>
